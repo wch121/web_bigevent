@@ -1,7 +1,8 @@
-$(function() {
+$(function () {
   var layer = layui.layer
   var form = layui.form
 
+  var id = getUrlParam('id')
   initCate()
   // 初始化富文本编辑器
   initEditor()
@@ -11,7 +12,7 @@ $(function() {
     $.ajax({
       method: 'GET',
       url: '/my/article/cates',
-      success: function(res) {
+      success: function (res) {
         if (res.status !== 0) {
           return layer.msg('初始化文章分类失败！')
         }
@@ -37,17 +38,17 @@ $(function() {
   $image.cropper(options)
 
   // 为选择封面的按钮，绑定点击事件处理函数
-  $('#btnChooseImage').on('click', function() {
+  $('#btnChooseImage').on('click', function () {
     $('#coverFile').click()
   })
 
   // 监听 coverFile 的 change 事件，获取用户选择的文件列表
-  $('#coverFile').on('change', function(e) {
+  $('#coverFile').on('change', function (e) {
     // 获取到文件的列表数组
     var files = e.target.files
     // 判断用户是否选择了文件
     if (files.length === 0) {
-      return
+      return layui.layer.msg('请选择封面图片')
     }
     // 根据文件，创建对应的 URL 地址
     var newImgURL = URL.createObjectURL(files[0])
@@ -62,12 +63,12 @@ $(function() {
   var art_state = '已发布'
 
   // 为存为草稿按钮，绑定点击事件处理函数
-  $('#btnSave2').on('click', function() {
+  $('#btnSave2').on('click', function () {
     art_state = '草稿'
   })
 
   // 为表单绑定 submit 提交事件
-  $('#form-pub').on('submit', function(e) {
+  $('#form-pub').on('submit', function (e) {
     // 1. 阻止表单的默认提交行为
     e.preventDefault()
     // 2. 基于 form 表单，快速创建一个 FormData 对象
@@ -81,34 +82,85 @@ $(function() {
         width: 400,
         height: 280
       })
-      .toBlob(function(blob) {
+      .toBlob(function (blob) {
         // 将 Canvas 画布上的内容，转化为文件对象
         // 得到文件对象后，进行后续的操作
         // 5. 将文件对象，存储到 fd 中
         fd.append('cover_img', blob)
         // 6. 发起 ajax 数据请求
-        publishArticle(fd)
+        // publishArticle(fd)
+        if (id) {
+          fd.append('id', id)
+          publishArticle(fd, '/my/article/edit')
+        } else {
+          publishArticle(fd, '/my/article/add')
+        }
       })
   })
 
   // 定义一个发布文章的方法
-  function publishArticle(fd) {
+  function publishArticle(fd, url) {
     $.ajax({
       method: 'POST',
-      url: '/my/article/add',
+      url: url,
       data: fd,
-      // 注意：如果向服务器提交的是 FormData 格式的数据，
-      // 必须添加以下两个配置项
+      /* 注意：如果向服务器发生FormDate数据格式的ajax请求，必须要带
+          contentType和processData属性，且属性值一定设置为false
+      */
       contentType: false,
       processData: false,
-      success: function(res) {
+      success: function (res) {
+        layui.layer.msg(res.msg)
         if (res.status !== 0) {
-          return layer.msg('发布文章失败！')
+          return
         }
-        layer.msg('发布文章成功！')
-        // 发布文章成功后，跳转到文章列表页面
+        // window.parent.setNavSelected('#article-list', '#article-pub')
+        // console.log(window.parent);
         location.href = '/article/art_list.html'
       }
     })
+  }
+  // function publishArticle(fd) {
+  //   $.ajax({
+  //     method: 'POST',
+  //     url: '/my/article/add',
+  //     data: fd,
+  //     // 注意：如果向服务器提交的是 FormData 格式的数据，
+  //     // 必须添加以下两个配置项
+  //     contentType: false,
+  //     processData: false,
+  //     success: function (res) {
+  //       if (res.status !== 0) {
+  //         return layer.msg('发布文章失败！')
+  //       }
+  //       layer.msg('发布文章成功！')
+  //       // 发布文章成功后，跳转到文章列表页面
+  //       location.href = '/article/art_list.html'
+  //     }
+  //   })
+  // }
+
+
+  // 用文章旧数据渲染页面
+  if (id) {
+    $.ajax({
+      method: 'GET',
+      url: `/my/article/article/${id}`,
+      success: function (res) {
+        if (res.status !== 0) {
+          return layui.layer.msg(res.msg)
+        }
+        layui.form.val('formPublish', res.data)
+        $image.cropper('destroy').attr('src', 'http://127.0.0.1:3007' + res.data.cover_img).cropper(options);
+      }
+    })
+  }
+
+  //获取url中的参数
+  function getUrlParam(name) {
+    var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)"); //构造一个含有目标参数的正则表达式对象
+    var r = window.location.search.substr(1).match(reg); //匹配目标参数
+    if (r != null) return unescape(r[2]);
+    return null; //返回参数值
   }
 })

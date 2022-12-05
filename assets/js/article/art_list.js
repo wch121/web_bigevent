@@ -94,7 +94,7 @@ $(function () {
       limit: q.pagesize, // 每页显示几条数据
       curr: q.pagenum, // 设置默认被选中的分页
       layout: ['count', 'limit', 'prev', 'page', 'next', 'skip'],
-      limits: [2, 4, 5, 10,20],
+      limits: [2, 4, 5, 10, 20],
       // 分页发生切换的时候，触发 jump 回调
       // 触发 jump 回调的方式有两种：
       // 1. 点击页码的时候，会触发 jump 回调
@@ -149,7 +149,13 @@ $(function () {
           initTable()
         }
       })
-
     })
   })
+})
+
+// 通过代理的形式，为 btn-edit 按钮绑定点击事件
+var indexEdit = null
+$('tbody').on('click', '.btn-edit', function (e) {
+  var id = $(this).attr('data-id')
+  location.href = `/article/art_pub.html?id=${id}`
 })
